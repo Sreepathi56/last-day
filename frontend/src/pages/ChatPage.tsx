@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import {
   api,
@@ -12,7 +13,15 @@ function newSessionId(): string {
   return crypto.randomUUID();
 }
 
+const SUGGESTIONS = [
+  "Teach me Python from zero",
+  "Explain photosynthesis simply",
+  "What is machine learning?",
+  "Summarize my uploaded documents",
+];
+
 export default function ChatPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -48,19 +57,22 @@ export default function ChatPage() {
     (async () => {
       const data = await loadSessions();
       if (cancelled) return;
-      if (data.length > 0) {
+      if (searchParams.get("new") === "1") {
+        setActiveId(newSessionId());
+        setMessages([]);
+        setSearchParams({}, { replace: true });
+      } else if (data.length > 0) {
         setActiveId(data[0].session_id);
         await loadHistory(data[0].session_id);
       } else {
-        const fresh = newSessionId();
-        setActiveId(fresh);
+        setActiveId(newSessionId());
         setMessages([]);
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [loadSessions, loadHistory]);
+  }, [loadSessions, loadHistory, searchParams, setSearchParams]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -74,20 +86,18 @@ export default function ChatPage() {
   }
 
   async function startNewChat() {
-    const fresh = newSessionId();
-    setActiveId(fresh);
+    setActiveId(newSessionId());
     setMessages([]);
     setError("");
     setQuestion("");
   }
 
-  async function onSubmit(e: FormEvent) {
-    e.preventDefault();
-    const q = question.trim();
+  async function send(text: string) {
+    const q = text.trim();
     if (!q || busy || !activeId) return;
     setQuestion("");
-    setBusy(true);
     setError("");
+    setBusy(true);
     try {
       const { data } = await api.post<ChatResponse>("/chat", {
         question: q,
@@ -110,35 +120,48 @@ export default function ChatPage() {
     }
   }
 
+  function onSubmit(e: FormEvent) {
+    e.preventDefault();
+    void send(question);
+  }
+
   return (
-    <div className="mx-auto flex max-w-5xl flex-col gap-4 lg:flex-row">
-      <aside className="card flex flex-col p-3 lg:w-64 lg:self-start">
+    <div className="flex h-full">
+      <aside className="hidden w-64 shrink-0 flex-col border-r border-white/5 bg-night-900/60 p-3 lg:flex">
         <button
           onClick={startNewChat}
-          className="btn-primary mb-3 w-full"
-          disabled={busy}
+          className="mb-3 flex items-center justify-center gap-2 rounded-xl bg-white/10 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15"
         >
+          <svg
+            className="h-4 w-4"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <path d="M12 5v14M5 12h14" />
+          </svg>
           New chat
         </button>
-        <div className="flex flex-col gap-1 overflow-y-auto lg:max-h-[65vh]">
+        <div className="flex-1 space-y-1 overflow-y-auto">
           {sessions.length === 0 && (
-            <p className="px-2 py-4 text-center text-sm text-slate-500">
-              No conversations yet.
+            <p className="px-2 py-6 text-center text-xs text-slate-500">
+              No conversations yet
             </p>
           )}
           {sessions.map((s) => (
             <button
               key={s.session_id}
               onClick={() => openSession(s.session_id)}
-              className={`rounded-xl px-3 py-2 text-left text-sm transition ${
+              className={`block w-full rounded-xl px-3 py-2.5 text-left transition ${
                 s.session_id === activeId
-                  ? "bg-white/10 text-cyan-300"
+                  ? "bg-white/10 text-white"
                   : "text-slate-400 hover:bg-white/5 hover:text-white"
               }`}
             >
-              <span className="block truncate font-medium">{s.title}</span>
-              <span className="block text-xs text-slate-500">
-                {s.message_count} message{s.message_count === 1 ? "" : "s"}
+              <span className="block truncate text-sm font-medium">
+                {s.title}
               </span>
             </button>
           ))}
@@ -146,82 +169,154 @@ export default function ChatPage() {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="mb-4 flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Study Chat</h1>
-          <button
-            onClick={() => setMessages([])}
-            className="btn-ghost !px-3 !py-1.5 text-sm"
-          >
-            Clear view
-          </button>
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto flex min-h-full max-w-3xl flex-col px-4 py-6">
+            {messages.length === 0 ? (
+              <EmptyState
+                busy={busy}
+                onPick={(text) => void send(text)}
+              />
+            ) : (
+              <div className="space-y-6">
+                {messages.map((m) => (
+                  <MessageRow key={m.id} message={m} />
+                ))}
+                {busy && <ThinkingRow />}
+                {error && (
+                  <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                    {error}
+                  </p>
+                )}
+                <div ref={bottomRef} />
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="card flex min-h-[60vh] flex-col overflow-hidden">
-          <div className="flex-1 space-y-4 overflow-y-auto p-5">
-            {messages.length === 0 && (
-              <p className="pt-16 text-center text-sm text-slate-500">
-                Ask anything about your study material. Uploaded PDFs are used as
-                context automatically.
-              </p>
-            )}
-            {messages.map((m) => (
-              <div key={m.id} className="space-y-2">
-                <Bubble kind="user">{m.question}</Bubble>
-                <Bubble kind="assistant">{m.answer}</Bubble>
-              </div>
-            ))}
-            {busy && <Bubble kind="assistant">Thinking...</Bubble>}
-            {error && (
-              <p className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-                {error}
-              </p>
-            )}
-            <div ref={bottomRef} />
-          </div>
-
-          <form
-            onSubmit={onSubmit}
-            className="flex gap-2 border-t border-white/10 p-3"
-          >
-            <input
-              className="input flex-1"
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              placeholder="Type your question..."
-              disabled={busy}
-            />
-            <button
-              type="submit"
-              disabled={busy || !question.trim()}
-              className="btn-primary"
+        <div className="border-t border-white/5 p-4">
+          <div className="mx-auto max-w-3xl">
+            <form
+              onSubmit={onSubmit}
+              className="flex items-end gap-2 rounded-3xl border border-white/15 bg-night-900 p-2 pl-4 transition focus-within:border-cyan-400/50"
             >
-              Send
-            </button>
-          </form>
+              <input
+                className="flex-1 bg-transparent py-2 text-slate-100 placeholder-slate-500 outline-none"
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                placeholder="Ask anything about your study material..."
+                disabled={busy}
+              />
+              <button
+                type="submit"
+                disabled={busy || !question.trim()}
+                aria-label="Send message"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-500 to-purple-600 text-white transition enabled:hover:opacity-90 disabled:opacity-30"
+              >
+                <svg
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 19V5M5 12l7-7 7 7" />
+                </svg>
+              </button>
+            </form>
+            <p className="mt-2 text-center text-xs text-slate-600">
+              Neon-AI can make mistakes. Check important information.
+            </p>
+          </div>
         </div>
       </div>
     </div>
   );
 }
 
-function Bubble({
-  kind,
-  children,
+function EmptyState({
+  busy,
+  onPick,
 }: {
-  kind: "user" | "assistant";
-  children: React.ReactNode;
+  busy: boolean;
+  onPick: (text: string) => void;
 }) {
-  const align = kind === "user" ? "items-end" : "items-start";
-  const style =
-    kind === "user"
-      ? "bg-gradient-to-r from-cyan-600/80 to-purple-600/80 text-white"
-      : "bg-white/5 text-slate-200";
   return (
-    <div className={`flex flex-col ${align}`}>
-      <div
-        className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed ${style}`}
-      >
-        {children}
+    <div className="flex flex-1 flex-col items-center justify-center text-center">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-3xl bg-gradient-to-br from-cyan-400 to-purple-600">
+        <svg
+          className="h-7 w-7 text-white"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+        </svg>
+      </div>
+      <h1 className="text-2xl font-semibold text-white">
+        What can I help you learn?
+      </h1>
+      <p className="mt-2 text-sm text-slate-400">
+        Ask questions, study with your PDFs, or learn any topic from beginner to advanced.
+      </p>
+      <div className="mt-8 grid w-full gap-2 sm:grid-cols-2">
+        {SUGGESTIONS.map((s) => (
+          <button
+            key={s}
+            onClick={() => onPick(s)}
+            disabled={busy}
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left text-sm text-slate-300 transition hover:border-cyan-400/40 hover:bg-white/10 disabled:opacity-50"
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MessageRow({ message }: { message: ChatMessage }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex justify-end">
+        <div className="rounded-2xl rounded-br-md bg-white/10 px-4 py-2.5 text-sm leading-relaxed text-slate-100">
+          {message.question}
+        </div>
+      </div>
+      <div className="flex gap-3">
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-purple-600">
+          <svg
+            className="h-4 w-4 text-white"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+          </svg>
+        </div>
+        <div className="min-w-0 whitespace-pre-wrap pt-1 text-[15px] leading-relaxed text-slate-200">
+          {message.answer}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ThinkingRow() {
+  return (
+    <div className="flex gap-3">
+      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-400 to-purple-600">
+        <svg
+          className="h-4 w-4 text-white"
+          viewBox="0 0 24 24"
+          fill="currentColor"
+        >
+          <path d="M12 2l2.4 7.2L22 12l-7.6 2.8L12 22l-2.4-7.2L2 12l7.6-2.8z" />
+        </svg>
+      </div>
+      <div className="flex items-center gap-1 pt-3">
+        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500 [animation-delay:0.15s]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-slate-500 [animation-delay:0.3s]" />
       </div>
     </div>
   );

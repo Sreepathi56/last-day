@@ -23,11 +23,11 @@ COURSE_SYSTEM_PROMPT = (
 COURSE_TEMPLATE = (
     'Design a complete beginner-to-advanced course about "{topic}". '
     "Respond as a JSON object with exactly this structure:\n"
-    '{"title": "<course title>", "description": "<one or two sentence course overview>", '
+    '{{"title": "<course title>", "description": "<one or two sentence course overview>", '
     '"levels": ['
-    '{"level": "Beginner", "lessons": [{"title": "<lesson title>", "content": "<teaching content, 3-6 sentences, plain text, no markdown>"}]}, '
-    '{"level": "Intermediate", "lessons": [...]}, '
-    '{"level": "Advanced", "lessons": [...]}'
+    '{{"level": "Beginner", "lessons": [{{"title": "<lesson title>", "content": "<teaching content, 3-6 sentences, plain text, no markdown>"}}]}}, '
+    '{{"level": "Intermediate", "lessons": [...]}}, '
+    '{{"level": "Advanced", "lessons": [...]}}'
     "]}\n"
     "Rules: exactly 3 levels in this order: Beginner, Intermediate, Advanced. "
     "Each level must have exactly 3 lessons. Lessons within a level build on each other, "
