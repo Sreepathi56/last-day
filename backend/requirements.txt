@@ -1,0 +1,39 @@
+# --- Core web framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+email-validator==2.2.0
+python-multipart==0.0.20
+python-dotenv==1.0.1
+
+# --- Database ---
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+
+# --- Auth ---
+PyJWT==2.10.1
+bcrypt==4.2.1
+
+# --- AI (Gemini) ---
+google-generativeai==0.8.3
+
+# --- RAG ---
+numpy==1.26.4
+PyMuPDF==1.25.1
+chromadb==0.6.3
+sentence-transformers==3.3.1
+
+# --- Testing ---
+pytest==8.3.4
+httpx==0.28.1
+
+# --- Heavy ML deps are optional at runtime.
+# If sentence-transformers / chromadb can't be installed (e.g. no torch),
+# the backend automatically falls back to hashed embeddings + in-DB cosine search.
+#
+# Windows note: chromadb (0.6.x) needs the `chroma-hnswlib` package, which has
+# no cp312 win_amd64 wheel and builds from source with MSVC C++ tools. Without
+# MSVC build tools, leave chromadb out -- the backend transparently falls back
+# to in-DB cosine search over the chunks.embedding JSON column (see
+# app/rag/chroma_store.py). torch + sentence-transformers have cp312 Windows
+# wheels and install cleanly.

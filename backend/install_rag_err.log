@@ -1,0 +1,22 @@
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Connection interrupted while downloading.
+WARNING: Attempting to resume incomplete download (4.5 MB/4.6 MB, attempt 1)
+WARNING: Connection interrupted while downloading.
+WARNING: Attempting to resume incomplete download (79.7 MB/122.1 MB, attempt 1)
+WARNING: Connection interrupted while downloading.
+WARNING: Attempting to resume incomplete download (79.7 MB/122.1 MB, attempt 2)
+WARNING: Connection interrupted while downloading.
+WARNING: Attempting to resume incomplete download (81.0 MB/122.1 MB, attempt 3)
+WARNING: Connection interrupted while downloading.
+WARNING: Attempting to resume incomplete download (81.0 MB/122.1 MB, attempt 4)
+WARNING: Connection interrupted while downloading.
+WARNING: Attempting to resume incomplete download (81.0 MB/122.1 MB, attempt 5)
+WARNING: Connection interrupted while downloading.
+ERROR: Could not install packages due to an OSError: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\supriya\\AppData\\Local\\Temp\\pip-unpack-th96k618\\torch-2.13.0-cp312-cp312-win_amd64.whl'
+Check the permissions.
+
