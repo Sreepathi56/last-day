@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+neon_ai.db
+build/
+dist/
+node_modules/
+.git/
