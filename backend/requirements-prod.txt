@@ -1,0 +1,28 @@
+# Production dependencies for Render (lightweight).
+# Keeps the build small enough for Render's free tier (512 MB RAM).
+# Excludes chromadb + sentence-transformers (which pull torch). Without them the
+# RAG pipeline transparently falls back to hashed embeddings + in-DB cosine
+# search (see backend/app/rag/embedding.py and chroma_store.py).
+
+# --- Core web framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+email-validator==2.2.0
+python-multipart==0.0.20
+python-dotenv==1.0.1
+
+# --- Database ---
+SQLAlchemy==2.0.36
+psycopg2-binary==2.9.10
+
+# --- Auth ---
+PyJWT==2.10.1
+bcrypt==4.2.1
+
+# --- AI (Gemini) ---
+google-generativeai==0.8.3
+
+# --- RAG ---
+numpy==1.26.4
+PyMuPDF==1.25.1
